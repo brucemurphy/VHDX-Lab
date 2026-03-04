@@ -1,16 +1,11 @@
 ﻿Imports System.IO
 Imports System.Net.Http
+Imports System.Runtime.InteropServices
 Imports System.Security.Principal
-Imports System.Threading
-Imports System.Diagnostics
 Imports System.Text.RegularExpressions
-Imports System.Threading.Tasks
-Imports System.Windows
-Imports System.Windows.Media
+Imports System.Threading
 Imports System.Windows.Media.Effects
-Imports System.Windows.Media.Imaging
 Imports System.Windows.Threading
-Imports System.Xml.Linq
 Imports Microsoft.Win32
 
 Class MainWindow
@@ -40,6 +35,9 @@ Class MainWindow
     End Class
 
     Private Async Sub MainWindow_Loaded(sender As Object, e As RoutedEventArgs) Handles Me.Loaded
+        ' Enable dark title bar (Windows 10 1809+)
+        EnableDarkTitleBar()
+
         If Not IsAdministrator() Then
             Dim result = MessageBox.Show("This application must be run as Administrator." & vbCrLf &
                                          "Restart as Administrator now?", "Administrator Required",
@@ -566,16 +564,16 @@ Class MainWindow
             End If
 
             ' Mount VHDX using DISM
-            Dim mountArgs = $"/Mount-Image /ImageFile:""{vhdxPath}"" /Index:1 /MountDir:""{mountPath}"""
+            Dim mountArgs = $"/Mount-Image /ImageFile""{vhdxPath}"" /Index:1 /MountDir:""{mountPath}"""
             Dim mountResult = Await RunDismCommandAsync(mountArgs)
 
             StopDismIndicator()
 
             If mountResult.ExitCode <> 0 Then
-                UpdateProgressError("Mount Failed", "Could not attach VHDX")
+                UpdateProgressError("Mount Failed", "Could Not attach VHDX")
                 Await Task.Delay(3000)
                 ResetProgress()
-                MessageBox.Show($"Failed to mount VHDX:{vbCrLf}{mountResult.StdErr}",
+                MessageBox.Show($"Failed to mount VHDX{vbCrLf}{mountResult.StdErr}",
                                "Mount Failed",
                                MessageBoxButton.OK,
                                MessageBoxImage.Error)
@@ -589,7 +587,7 @@ Class MainWindow
             UpdateProgress("Injecting...", $"Adding {exportedDriverCount} driver(s)")
             StartDismIndicator()
 
-            Dim addDriverArgs = $"/Image:""{mountPath}"" /Add-Driver /Driver:""{_driverExportPath}"" /Recurse"
+            Dim addDriverArgs = $"/Image""{mountPath}"" /Add-Driver /Driver:""{_driverExportPath}"" /Recurse"
             Dim addDriverResult = Await RunDismCommandAsync(addDriverArgs)
 
             StopDismIndicator()
@@ -1054,4 +1052,18 @@ Class MainWindow
         End Try
     End Function
 
+    Private Sub EnableDarkTitleBar()
+        Try
+            Dim hwnd = New System.Windows.Interop.WindowInteropHelper(Me).Handle
+            Dim useImmersiveDarkMode As Integer = 20 ' DWMWA_USE_IMMERSIVE_DARK_MODE
+            Dim value As Integer = 1
+            DwmSetWindowAttribute(hwnd, useImmersiveDarkMode, value, Marshal.SizeOf(value))
+        Catch ex As Exception
+            Debug.WriteLine($"Failed to set dark title bar: {ex.Message}")
+        End Try
+    End Sub
+
+    <Runtime.InteropServices.DllImport("dwmapi.dll", PreserveSig:=True)>
+    Private Shared Function DwmSetWindowAttribute(hwnd As IntPtr, attr As Integer, ByRef attrValue As Integer, attrSize As Integer) As Integer
+    End Function
 End Class

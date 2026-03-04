@@ -3,15 +3,26 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:VHDX_Lab"
+        xmlns:shell="http://schemas.microsoft.com/winfx/2006/xaml/presentation/shell"
         mc:Ignorable="d"
-        Title="VDHX Lab" Height="795" Width="1285" Icon="/Lab.png" WindowStartupLocation="CenterScreen">
+        Title="VHDX Lab"
+        Height="768" 
+        Width="1280"
+        WindowStyle="SingleBorderWindow"
+        Background="Black">
+    
+    <Window.Resources>
+        <Style TargetType="{x:Type Window}">
+           
+        </Style>
+    </Window.Resources>
+    
     <Grid>
         <!-- Footer with Progress Panel and Activity Light -->
-        <Border Width="902" Height="86" Background="#BF000000" 
-                HorizontalAlignment="Left" VerticalAlignment="Bottom" 
-                Margin="242,0,0,0" CornerRadius="5,5,0,0">
-            <Canvas x:Name="FooterGrid" Width="902" Height="86">
+        <Border x:Name="FooterB" Width="902" Height="86" Background="#BF000000" 
+                HorizontalAlignment="Center" VerticalAlignment="Bottom" 
+                Margin="0,0,0,0" CornerRadius="5,5,0,0">
+            <Canvas x:Name="FooterGrid" Width="902" Height="86" HorizontalAlignment="Center" VerticalAlignment="Bottom">
                 <!-- Heading Text -->
                 <TextBlock x:Name="HeadingTextBlock"
                            Foreground="#FFCCCCCC"
