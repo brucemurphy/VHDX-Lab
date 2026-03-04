@@ -5,6 +5,7 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <RootNamespace>VHDX_Lab</RootNamespace>
     <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
 
   <ItemGroup>

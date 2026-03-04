@@ -1,14 +1,24 @@
 ﻿Imports System.IO
 Imports System.Net.Http
-Imports System.Runtime.InteropServices
 Imports System.Security.Principal
-Imports System.Text.RegularExpressions
 Imports System.Threading
+Imports System.Diagnostics
+Imports System.Text.RegularExpressions
+Imports System.Threading.Tasks
+Imports System.Windows
+Imports System.Windows.Media
 Imports System.Windows.Media.Effects
+Imports System.Windows.Media.Imaging
 Imports System.Windows.Threading
+Imports System.Xml.Linq
 Imports Microsoft.Win32
+Imports System.Runtime.InteropServices
+Imports System.Linq
+Imports Forms = System.Windows.Forms
+Imports System.Collections.Generic
+Imports System.Windows.Controls
 
-Class MainWindow
+Partial Class MainWindow
     Private Shared ReadOnly httpClient As New HttpClient()
     Private bcdEntries As New List(Of BcdEntry)()
 
@@ -32,7 +42,399 @@ Class MainWindow
         Public Overrides Function ToString() As String
             Return If(Not String.IsNullOrWhiteSpace(DisplayName), DisplayName, Identifier)
         End Function
+
     End Class
+
+    ' ==================== CREATE VHDX FROM FOLDER ====================
+
+    Private Async Sub BrowseSourceFolderButton_Click(sender As Object, e As RoutedEventArgs) Handles BrowseSourceFolderButton.Click
+        Dim folderDialog As New Forms.FolderBrowserDialog With {.Description = "Select the folder to package into a VHDX"}
+        If folderDialog.ShowDialog() = Forms.DialogResult.OK Then
+            Await SetSourceFolderAsync(folderDialog.SelectedPath)
+        End If
+    End Sub
+
+    Private Sub BrowseSavePathButton_Click(sender As Object, e As RoutedEventArgs) Handles BrowseSavePathButton.Click
+        Dim defaultName = "Image.vhdx"
+        If Not String.IsNullOrWhiteSpace(SourceFolderTextBox.Text) Then
+            defaultName = Path.GetFileName(SourceFolderTextBox.Text.TrimEnd(Path.DirectorySeparatorChar)) & ".vhdx"
+        End If
+
+        Dim saveDialog As New SaveFileDialog With {
+            .Filter = "VHDX Files (*.vhdx)|*.vhdx",
+            .Title = "Save VHDX",
+            .FileName = defaultName,
+            .OverwritePrompt = True
+        }
+
+        If saveDialog.ShowDialog() = True Then
+            SavePathTextBox.Text = saveDialog.FileName
+        End If
+    End Sub
+
+    Private Async Function SetSourceFolderAsync(sourcePath As String) As Task
+        If String.IsNullOrWhiteSpace(sourcePath) OrElse Not Directory.Exists(sourcePath) Then
+            MessageBox.Show("Please select a valid source folder.", "Invalid Source", MessageBoxButton.OK, MessageBoxImage.Warning)
+            Return
+        End If
+
+        SourceFolderTextBox.Text = sourcePath
+
+        UpdateProgress("Scanning...", "Calculating folder size")
+        StartDismIndicator()
+        Dim folderSize As Long = Await Task.Run(Function() GetFolderSizeSafe(sourcePath))
+        StopDismIndicator()
+
+        Dim suggestedSizeGb As Double = Math.Max(1, Math.Ceiling((folderSize * 1.2) / (1024.0 * 1024 * 1024)))
+        VhdxSizeTextBox.Text = suggestedSizeGb.ToString("0")
+
+        If String.IsNullOrWhiteSpace(SavePathTextBox.Text) Then
+            Dim trimmed = sourcePath.TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar)
+            Dim defaultName = System.IO.Path.GetFileName(trimmed) & ".vhdx"
+            Dim defaultDir = System.IO.Path.GetDirectoryName(trimmed)
+            If Not String.IsNullOrWhiteSpace(defaultDir) Then
+                SavePathTextBox.Text = System.IO.Path.Combine(defaultDir, defaultName)
+            Else
+                SavePathTextBox.Text = defaultName
+            End If
+        End If
+    End Function
+
+    Private Sub CreateVhdxFromFolderButton_Click(sender As Object, e As RoutedEventArgs) Handles CreateVhdxFromFolderButton.Click
+        If Not IsAdministrator() Then
+            MessageBox.Show("Administrator privileges are required to create a VHDX.", "Administrator Required", MessageBoxButton.OK, MessageBoxImage.Warning)
+            Return
+        End If
+
+        ' Only show the pane; actions happen via Start
+        If CreatePane.Visibility <> Visibility.Visible Then
+            CreatePane.Visibility = Visibility.Visible
+        End If
+    End Sub
+
+    Private Async Sub StartCreateVhdxButton_Click(sender As Object, e As RoutedEventArgs) Handles StartCreateVhdxButton.Click
+        Await RunCreateVhdxWorkflowAsync()
+    End Sub
+
+    Private Sub CancelCreateVhdxButton_Click(sender As Object, e As RoutedEventArgs) Handles CancelCreateVhdxButton.Click
+        CreatePane.Visibility = Visibility.Collapsed
+    End Sub
+
+    Private Async Function RunCreateVhdxWorkflowAsync() As Task
+        Dim workflowStarted As Boolean = False
+
+        Dim sourceFolder As String = SourceFolderTextBox.Text
+        If String.IsNullOrWhiteSpace(sourceFolder) OrElse Not Directory.Exists(sourceFolder) Then
+            BrowseSourceFolderButton_Click(Nothing, Nothing)
+            Return
+        End If
+
+        Dim folderSize As Long = Await Task.Run(Function() GetFolderSizeSafe(sourceFolder))
+
+        If String.IsNullOrWhiteSpace(VhdxSizeTextBox.Text) Then
+            Dim suggestedSizeGb As Double = Math.Max(1, Math.Ceiling((folderSize * 1.2) / (1024.0 * 1024 * 1024)))
+            VhdxSizeTextBox.Text = suggestedSizeGb.ToString("0")
+        End If
+
+        Dim sizeGb As Double
+        If Not Double.TryParse(VhdxSizeTextBox.Text, sizeGb) OrElse sizeGb <= 0 Then
+            MessageBox.Show("Invalid size entered.", "Invalid Input", MessageBoxButton.OK, MessageBoxImage.Warning)
+            Return
+        End If
+
+        Dim sizeBytes As Double = sizeGb * 1024 * 1024 * 1024
+        Dim sizeMb As Long = CLng(Math.Ceiling(sizeBytes / (1024 * 1024)))
+        If sizeBytes < folderSize Then
+            MessageBox.Show("The VHDX size must be greater than or equal to the folder size.", "Invalid Size", MessageBoxButton.OK, MessageBoxImage.Warning)
+            Return
+        End If
+
+        ' File system choice
+        If FileSystemCombo.SelectedIndex < 0 Then FileSystemCombo.SelectedIndex = 0
+        Dim fsChoice As String = TryCast((TryCast(FileSystemCombo.SelectedItem, ComboBoxItem))?.Content, String)
+        fsChoice = If(String.IsNullOrWhiteSpace(fsChoice), "FAT32", fsChoice.Trim().ToUpperInvariant())
+        Select Case fsChoice
+            Case "NTFS", "FAT32", "EXFAT"
+            Case Else
+                MessageBox.Show("Invalid file system selection. Choose NTFS, FAT32, or exFAT.", "Invalid Input", MessageBoxButton.OK, MessageBoxImage.Warning)
+                Return
+        End Select
+
+        ' Windows cannot format FAT32 volumes larger than 32GB
+        If fsChoice = "FAT32" AndAlso sizeGb > 32 Then
+            Dim res = MessageBox.Show("Windows cannot format FAT32 volumes larger than 32GB. Switch to exFAT instead?", "FAT32 Size Limit", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.Yes)
+            If res = MessageBoxResult.Yes Then
+                fsChoice = "EXFAT"
+            Else
+                Return
+            End If
+        End If
+
+        ' Partition style choice
+        If PartitionStyleCombo.SelectedIndex < 0 Then PartitionStyleCombo.SelectedIndex = 0
+        Dim partStyle As String = TryCast((TryCast(PartitionStyleCombo.SelectedItem, ComboBoxItem))?.Content, String)
+        partStyle = If(String.IsNullOrWhiteSpace(partStyle), "GPT", partStyle.Trim().ToUpperInvariant())
+        Dim convertCmd As String
+        Dim useMsr As Boolean = False
+        If partStyle = "MBR" Then
+            convertCmd = "convert mbr"
+        Else
+            partStyle = "GPT"
+            convertCmd = "convert gpt"
+            useMsr = True
+            If sizeMb <= 32 Then
+                MessageBox.Show("GPT layout requires some overhead (MSR). Increase the size above 32MB or choose MBR.", "Size Too Small for GPT", MessageBoxButton.OK, MessageBoxImage.Warning)
+                Return
+            End If
+        End If
+
+        Dim vhdxPath As String = SavePathTextBox.Text
+        If String.IsNullOrWhiteSpace(vhdxPath) Then
+            BrowseSavePathButton_Click(Nothing, Nothing)
+            vhdxPath = SavePathTextBox.Text
+        End If
+
+        If String.IsNullOrWhiteSpace(vhdxPath) Then
+            MessageBox.Show("Please choose a destination path.", "Missing Destination", MessageBoxButton.OK, MessageBoxImage.Warning)
+            Return
+        End If
+        Dim driveLetter As String = GetAvailableDriveLetter()
+
+        If String.IsNullOrWhiteSpace(driveLetter) Then
+            MessageBox.Show("No available drive letters to mount the VHDX.", "Drive Letter Unavailable", MessageBoxButton.OK, MessageBoxImage.Error)
+            Return
+        End If
+
+        workflowStarted = True
+
+        Dim createScriptPath As String = Nothing
+        Dim caughtEx As Exception = Nothing
+        Try
+            UpdateProgress("Creating...", "Building virtual disk")
+            StartDismIndicator()
+
+            createScriptPath = Path.GetTempFileName()
+            Dim scriptLines As New List(Of String) From {
+                $"create vdisk file=""{vhdxPath}"" maximum={sizeMb} type=expandable",
+                $"select vdisk file=""{vhdxPath}""",
+                "attach vdisk",
+                convertCmd
+            }
+
+            If useMsr Then
+                scriptLines.Add("create partition msr size=16")
+            End If
+
+            scriptLines.Add("create partition primary")
+            scriptLines.Add($"format fs={fsChoice} quick label=""VHDXFolder""")
+            scriptLines.Add($"assign letter={driveLetter}")
+            scriptLines.Add("exit")
+
+            File.WriteAllLines(createScriptPath, scriptLines)
+
+            Dim dpResult = Await RunDiskpartScriptAsync(createScriptPath)
+            If dpResult.ExitCode <> 0 Then
+                StopDismIndicator()
+                UpdateProgressError("DiskPart Error", dpResult.StdErr)
+                Await DetachVhdxAsync(vhdxPath)
+                Await Task.Delay(2000)
+                ResetProgress()
+                MessageBox.Show($"Failed to create VHDX:{vbCrLf}{dpResult.StdErr}", "DiskPart Error", MessageBoxButton.OK, MessageBoxImage.Error)
+                Return
+            End If
+
+            UpdateProgress("Copying...", "Transferring files to VHDX")
+
+            Dim targetRoot = driveLetter & ":\"
+            Await Task.Run(Sub() CopyDirectoryContents(sourceFolder, targetRoot, folderSize))
+
+            UpdateProgress("Detaching...", "Finalizing VHDX")
+            Await DetachVhdxAsync(vhdxPath)
+
+            StopDismIndicator()
+            UpdateProgressSuccess("Complete", $"Saved to {vhdxPath} ({partStyle}/{fsChoice})")
+            Await Task.Delay(2000)
+            ResetProgress()
+
+            MessageBox.Show($"VHDX created successfully!{vbCrLf}Source: {sourceFolder}{vbCrLf}Destination: {vhdxPath}{vbCrLf}Partition: {partStyle}{vbCrLf}File System: {fsChoice}", "Success", MessageBoxButton.OK, MessageBoxImage.Information)
+        Catch ex As Exception
+            caughtEx = ex
+        Finally
+            If Not String.IsNullOrWhiteSpace(createScriptPath) AndAlso File.Exists(createScriptPath) Then
+                Try
+                    File.Delete(createScriptPath)
+                Catch
+                End Try
+            End If
+        End Try
+
+        If caughtEx IsNot Nothing Then
+            StopDismIndicator()
+            UpdateProgressError("Error", caughtEx.Message)
+            Await Task.Delay(2000)
+            ResetProgress()
+            MessageBox.Show($"Failed to create VHDX: {caughtEx.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error)
+            Await DetachVhdxAsync(vhdxPath)
+        End If
+
+        If workflowStarted Then
+            CreatePane.Visibility = Visibility.Collapsed
+        End If
+    End Function
+
+    Private Function GetFolderSizeSafe(path As String) As Long
+        Dim total As Long = 0
+        For Each file In EnumerateSafeFiles(path)
+            Try
+                total += New FileInfo(file).Length
+            Catch
+            End Try
+        Next
+        Return total
+    End Function
+
+    Private Function GetAvailableDriveLetter() As String
+        Dim usedLetters As New HashSet(Of Char)(DriveInfo.GetDrives().Select(Function(d) Char.ToUpperInvariant(d.Name(0))))
+        For letterCode As Integer = Asc("Z"c) To Asc("D"c) Step -1
+            Dim letter = Chr(letterCode)
+            If Not usedLetters.Contains(letter) Then
+                Return letter
+            End If
+        Next
+        Return Nothing
+    End Function
+
+    Private Async Function RunDiskpartScriptAsync(scriptPath As String) As Task(Of (ExitCode As Integer, StdOut As String, StdErr As String))
+        Try
+            Dim psi As New ProcessStartInfo("diskpart.exe", $"/s ""{scriptPath}""") With {
+                .UseShellExecute = False,
+                .RedirectStandardOutput = True,
+                .RedirectStandardError = True,
+                .CreateNoWindow = True
+            }
+
+            Using p As Process = Process.Start(psi)
+                Dim stdOutTask = p.StandardOutput.ReadToEndAsync()
+                Dim stdErrTask = p.StandardError.ReadToEndAsync()
+                Await p.WaitForExitAsync()
+                Return (p.ExitCode, Await stdOutTask, Await stdErrTask)
+            End Using
+        Catch ex As Exception
+            Return (-1, String.Empty, ex.Message)
+        End Try
+    End Function
+
+    Private Async Function DetachVhdxAsync(vhdxPath As String) As Task
+        Dim detachScript As String = Nothing
+        Try
+            detachScript = Path.GetTempFileName()
+            File.WriteAllLines(detachScript, New String() {
+                               $"select vdisk file=""{vhdxPath}""",
+                               "detach vdisk",
+                               "exit"})
+            Await RunDiskpartScriptAsync(detachScript)
+        Catch
+        Finally
+            If Not String.IsNullOrWhiteSpace(detachScript) AndAlso File.Exists(detachScript) Then
+                Try
+                    File.Delete(detachScript)
+                Catch
+                End Try
+            End If
+        End Try
+    End Function
+
+    Private Function ShouldSkipSystemFolder(folderName As String) As Boolean
+        If String.IsNullOrWhiteSpace(folderName) Then Return False
+        Return folderName.Equals("System Volume Information", StringComparison.OrdinalIgnoreCase) OrElse
+               folderName.Equals("$RECYCLE.BIN", StringComparison.OrdinalIgnoreCase)
+    End Function
+
+    Private Iterator Function EnumerateSafeDirectories(root As String) As IEnumerable(Of String)
+        Dim stack As New Stack(Of String)()
+        stack.Push(root)
+
+        While stack.Count > 0
+            Dim current = stack.Pop()
+            Dim dirs() As String = {}
+            Try
+                dirs = System.IO.Directory.GetDirectories(current)
+            Catch ex As UnauthorizedAccessException
+                Continue While
+            Catch ex As IOException
+                Continue While
+            End Try
+
+            For Each directoryPath In dirs
+                Dim name = Path.GetFileName(directoryPath)
+                If ShouldSkipSystemFolder(name) Then Continue For
+                Yield directoryPath
+                stack.Push(directoryPath)
+            Next
+        End While
+    End Function
+
+    Private Iterator Function EnumerateSafeFiles(root As String) As IEnumerable(Of String)
+        Dim stack As New Stack(Of String)()
+        stack.Push(root)
+
+        While stack.Count > 0
+            Dim current = stack.Pop()
+            Dim dirs() As String = {}
+            Try
+                For Each f In System.IO.Directory.GetFiles(current)
+                    Yield f
+                Next
+                dirs = System.IO.Directory.GetDirectories(current)
+            Catch ex As UnauthorizedAccessException
+                Continue While
+            Catch ex As IOException
+                Continue While
+            End Try
+
+            For Each directoryPath In dirs
+                Dim name = Path.GetFileName(directoryPath)
+                If ShouldSkipSystemFolder(name) Then Continue For
+                stack.Push(directoryPath)
+            Next
+        End While
+    End Function
+
+    Private Sub CopyDirectoryContents(sourceFolder As String, targetRoot As String, totalSize As Long)
+        If Not System.IO.Directory.Exists(targetRoot) Then
+            System.IO.Directory.CreateDirectory(targetRoot)
+        End If
+
+        For Each subDir In EnumerateSafeDirectories(sourceFolder)
+            Dim relativeDir = subDir.Substring(sourceFolder.Length).TrimStart(Path.DirectorySeparatorChar)
+            Dim targetDir = Path.Combine(targetRoot, relativeDir)
+            If Not System.IO.Directory.Exists(targetDir) Then
+                System.IO.Directory.CreateDirectory(targetDir)
+            End If
+        Next
+
+        Dim files = EnumerateSafeFiles(sourceFolder)
+        Dim copiedBytes As Long = 0
+
+        For Each file In files
+            Dim relativePath = file.Substring(sourceFolder.Length).TrimStart(Path.DirectorySeparatorChar)
+            Dim destination = Path.Combine(targetRoot, relativePath)
+            Dim destDir = Path.GetDirectoryName(destination)
+            If Not System.IO.Directory.Exists(destDir) Then
+                System.IO.Directory.CreateDirectory(destDir)
+            End If
+
+            System.IO.File.Copy(file, destination, True)
+            copiedBytes += New FileInfo(file).Length
+
+            Dim pct As Integer = If(totalSize > 0, CInt(Math.Min(100, (copiedBytes * 100.0) / totalSize)), 0)
+
+            Dispatcher.Invoke(Sub()
+                                   MountSizeProgressText.Text = If(totalSize > 0, $"{pct}%", "Copying...")
+                                   MountSizeProgressTextDetail.Text = $"{FormatBytes(copiedBytes)} / {FormatBytes(totalSize)}"
+                               End Sub)
+        Next
+    End Sub
 
     Private Async Sub MainWindow_Loaded(sender As Object, e As RoutedEventArgs) Handles Me.Loaded
         ' Enable dark title bar (Windows 10 1809+)

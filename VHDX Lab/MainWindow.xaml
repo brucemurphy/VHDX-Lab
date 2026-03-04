@@ -17,7 +17,7 @@
         </Style>
     </Window.Resources>
     
-    <Grid>
+    <Grid x:Name="RootGrid">
         <!-- Footer with Progress Panel and Activity Light -->
         <Border x:Name="FooterB" Width="902" Height="86" Background="#BF000000" 
                 HorizontalAlignment="Center" VerticalAlignment="Bottom" 
@@ -92,7 +92,7 @@
         </Border>
 
         <!-- Add VHDX Button -->
-        <Border Width="125" Height="32" Background="#BF000000" CornerRadius="5" 
+        <Border Width="156" Height="32" Background="#BF000000" CornerRadius="5" 
                 HorizontalAlignment="Left" VerticalAlignment="Top" Margin="912,76,0,0">
             <Button x:Name="AddVHDXButton" Content="Add VHDX" Background="Transparent" BorderThickness="0" 
                     Foreground="#FFFAFAFA" Cursor="Hand">
@@ -122,7 +122,7 @@
         </Border>
 
         <!-- Delete Entry Button -->
-        <Border Width="125" Height="32" Background="#BF000000" CornerRadius="5" 
+        <Border Width="156" Height="32" Background="#BF000000" CornerRadius="5" 
                 HorizontalAlignment="Left" VerticalAlignment="Top" Margin="912,113,0,0">
             <Button x:Name="DeleteEntryButton" Content="Delete Entry" Background="Transparent" BorderThickness="0" 
                     Foreground="#FFFAFAFA" Cursor="Hand">
@@ -149,6 +149,189 @@
                     </Style>
                 </Button.Style>
             </Button>
+        </Border>
+
+        <!-- Create VHDX from Folder Button -->
+        <Border Width="156" Height="32" Background="#BF000000" CornerRadius="5" 
+                HorizontalAlignment="Left" VerticalAlignment="Top" Margin="912,150,0,0">
+            <Button x:Name="CreateVhdxFromFolderButton" Content="Create VHDX from Folder" Background="Transparent" BorderThickness="0" 
+                    Foreground="#FFFAFAFA" Cursor="Hand">
+                <Button.Style>
+                    <Style TargetType="{x:Type Button}">
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="{x:Type Button}">
+                                    <Border Background="{TemplateBinding Background}" CornerRadius="5">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#3FFFFFFF"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#5FFFFFFF"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
+        </Border>
+
+        <!-- Create VHDX Options Pane -->
+        <Border x:Name="CreatePane" Width="320" Height="260" Background="#BF000000" CornerRadius="5"
+                HorizontalAlignment="Left" VerticalAlignment="Top" Margin="912,210,0,0"
+                Visibility="Collapsed">
+            <Grid Margin="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="110"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="78"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Text="Source Folder" Foreground="White" Margin="0,0,8,6" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center"/>
+                <TextBox x:Name="SourceFolderTextBox" Grid.Row="0" Grid.Column="1" Margin="0,0,6,6" IsReadOnly="True" Height="26"/>
+                <Border Width="72" Height="26" Background="#BF000000" CornerRadius="3" Grid.Row="0" Grid.Column="2" Margin="0,0,0,6">
+                    <Button x:Name="BrowseSourceFolderButton" Content="Browse" Background="Transparent" BorderThickness="0" Foreground="#FFFAFAFA" Cursor="Hand">
+                        <Button.Style>
+                            <Style TargetType="{x:Type Button}">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="{x:Type Button}">
+                                            <Border Background="{TemplateBinding Background}" CornerRadius="3">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#3FFFFFFF"/>
+                                    </Trigger>
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter Property="Background" Value="#5FFFFFFF"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </Border>
+
+                <TextBlock Text="Save As" Foreground="White" Margin="0,0,8,6" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center"/>
+                <TextBox x:Name="SavePathTextBox" Grid.Row="1" Grid.Column="1" Margin="0,0,6,6" IsReadOnly="True" Height="26"/>
+                <Border Width="72" Height="26" Background="#BF000000" CornerRadius="3" Grid.Row="1" Grid.Column="2" Margin="0,0,0,6">
+                    <Button x:Name="BrowseSavePathButton" Content="Browse" Background="Transparent" BorderThickness="0" Foreground="#FFFAFAFA" Cursor="Hand">
+                        <Button.Style>
+                            <Style TargetType="{x:Type Button}">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="{x:Type Button}">
+                                            <Border Background="{TemplateBinding Background}" CornerRadius="3">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#3FFFFFFF"/>
+                                    </Trigger>
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter Property="Background" Value="#5FFFFFFF"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </Border>
+
+                <TextBlock Text="Size (GB)" Foreground="White" Margin="0,0,8,6" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center"/>
+                <TextBox x:Name="VhdxSizeTextBox" Grid.Row="2" Grid.Column="1" Margin="0,0,6,6" Width="120" Height="26"/>
+
+                <TextBlock Text="File System" Foreground="White" Margin="0,0,8,6" Grid.Row="3" Grid.Column="0" VerticalAlignment="Center"/>
+                <ComboBox x:Name="FileSystemCombo" SelectedIndex="0" Grid.Row="3" Grid.Column="1" Margin="0,0,6,6" Width="140">
+                    <ComboBoxItem Content="FAT32"/>
+                    <ComboBoxItem Content="NTFS"/>
+                    <ComboBoxItem Content="exFAT"/>
+                </ComboBox>
+
+                <TextBlock Text="Partition Style" Foreground="White" Margin="0,0,8,6" Grid.Row="4" Grid.Column="0" VerticalAlignment="Center"/>
+                <ComboBox x:Name="PartitionStyleCombo" SelectedIndex="0" Grid.Row="4" Grid.Column="1" Margin="0,0,6,6" Width="140">
+                    <ComboBoxItem Content="GPT"/>
+                    <ComboBoxItem Content="MBR"/>
+                </ComboBox>
+
+                <StackPanel Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+                    <Border Width="80" Height="32" Background="#BF000000" CornerRadius="5">
+                        <Button x:Name="CancelCreateVhdxButton" Content="Cancel" Background="Transparent" BorderThickness="0" 
+                                Foreground="#FFFAFAFA" Cursor="Hand">
+                            <Button.Style>
+                                <Style TargetType="{x:Type Button}">
+                                    <Setter Property="Background" Value="Transparent"/>
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="{x:Type Button}">
+                                                <Border Background="{TemplateBinding Background}" CornerRadius="5">
+                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#3FFFFFFF"/>
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter Property="Background" Value="#5FFFFFFF"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </Border>
+                    <Border Width="80" Height="32" Background="#BF000000" CornerRadius="5" Margin="8,0,0,0">
+                        <Button x:Name="StartCreateVhdxButton" Content="Start" Background="Transparent" BorderThickness="0" 
+                                Foreground="#FFFAFAFA" Cursor="Hand">
+                            <Button.Style>
+                                <Style TargetType="{x:Type Button}">
+                                    <Setter Property="Background" Value="Transparent"/>
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="{x:Type Button}">
+                                                <Border Background="{TemplateBinding Background}" CornerRadius="5">
+                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#3FFFFFFF"/>
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter Property="Background" Value="#5FFFFFFF"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </Border>
+                </StackPanel>
+            </Grid>
         </Border>
     </Grid>
 </Window>
