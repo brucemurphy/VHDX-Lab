@@ -1,0 +1,397 @@
+﻿<Window x:Name="VHDX_Lab" x:Class="MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:shell="http://schemas.microsoft.com/winfx/2006/xaml/presentation/shell"
+        mc:Ignorable="d"
+        Title="VHDX Lab"
+        Height="768" 
+        Width="1280"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="SingleBorderWindow"
+        Background="Black" Icon="/VHDXLab.png">
+
+    <Window.Resources>
+        <Style TargetType="{x:Type Window}">
+
+        </Style>
+    </Window.Resources>
+
+    <Grid x:Name="RootGrid">
+        <!-- Footer with Progress Panel and Activity Light -->
+        <Border x:Name="FooterB" Width="902" Height="86" Background="#BF000000" 
+                HorizontalAlignment="Center" VerticalAlignment="Bottom" 
+                Margin="0,0,0,0" CornerRadius="5,5,0,0">
+            <Canvas x:Name="FooterGrid" Width="902" Height="86" HorizontalAlignment="Center" VerticalAlignment="Bottom">
+                <!-- Heading Text -->
+                <TextBlock x:Name="HeadingTextBlock"
+                           Foreground="#FFCCCCCC"
+                           FontSize="22"
+                           Canvas.Left="31"
+                           Canvas.Top="16"/>
+
+                <!-- Copyright Text -->
+                <TextBlock x:Name="CopyrightTextBlock"
+                           Foreground="#CCC"
+                           TextWrapping="Wrap"
+                           Canvas.Left="31"
+                           Canvas.Top="50"
+                           Width="600"/>
+
+                <!-- DISM Activity Light - Fixed Position -->
+                <Ellipse x:Name="DismActivityLight"
+                         Width="18" Height="18"
+                         Fill="#333"
+                         Stroke="#555"
+                         StrokeThickness="1"
+                         Cursor="Hand"
+                         Canvas.Right="20"
+                         Canvas.Top="34"
+                         ToolTip="DISM Activity"/>
+
+                <!-- Progress Panel - Fixed Position and Size -->
+                <StackPanel x:Name="ProgressPanel"
+                            Orientation="Vertical"
+                            Canvas.Right="50"
+                            Canvas.Top="16"
+                            Width="230">
+                    <!-- Main progress text (big) -->
+                    <TextBlock x:Name="MountSizeProgressText"
+                               FontSize="22"
+                               Foreground="#FFE2E2E2"
+                               TextAlignment="Right"
+                               TextTrimming="None"
+                               TextWrapping="NoWrap"
+                               Width="230"/>
+
+                    <!-- Detail line (smaller) -->
+                    <TextBlock x:Name="MountSizeProgressTextDetail"
+                               Margin="0,4,0,0"
+                               Foreground="#FFE2E2E2"
+                               TextAlignment="Right"
+                               TextTrimming="CharacterEllipsis"
+                               TextWrapping="NoWrap"
+                               Width="230"/>
+                </StackPanel>
+            </Canvas>
+        </Border>
+
+        <!-- BCDEntrys ListBox -->
+        <Border Width="220" Height="545" Background="#BF000000" CornerRadius="5" 
+                HorizontalAlignment="Left" VerticalAlignment="Top" Margin="84,76,0,0">
+            <ListBox x:Name="BCDEntrys" d:ItemsSource="{d:SampleData ItemCount=5}" 
+                     Background="Transparent" BorderThickness="0" Foreground="#FFFAFAFA"/>
+        </Border>
+
+        <!-- GUIDDetail TextBox -->
+        <Border Width="575" Height="545" Background="#BF000000" CornerRadius="5" 
+                HorizontalAlignment="Left" VerticalAlignment="Top" Margin="332,76,0,0">
+            <TextBox x:Name="GUIDDetail" Background="Transparent" BorderThickness="0" Foreground="#FFFAFAFA" 
+                     TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" IsReadOnly="True" 
+                     Padding="10" FontFamily="Consolas"/>
+        </Border>
+
+        <!-- Add VHDX Button -->
+        <Border Width="156" Height="32" Background="#BF000000" CornerRadius="5" 
+                HorizontalAlignment="Left" VerticalAlignment="Top" Margin="912,76,0,0">
+            <Button x:Name="AddVHDXButton" Content="Add VHDX" Background="Transparent" BorderThickness="0" 
+                    Foreground="#FFFAFAFA" Cursor="Hand">
+                <Button.Style>
+                    <Style TargetType="{x:Type Button}">
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="{x:Type Button}">
+                                    <Border Background="{TemplateBinding Background}" CornerRadius="5">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#3FFFFFFF"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#5FFFFFFF"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
+        </Border>
+
+        <!-- Delete Entry Button -->
+        <Border Width="156" Height="32" Background="#BF000000" CornerRadius="5" 
+                HorizontalAlignment="Left" VerticalAlignment="Top" Margin="912,113,0,0">
+            <Button x:Name="DeleteEntryButton" Content="Delete Entry" Background="Transparent" BorderThickness="0" 
+                    Foreground="#FFFAFAFA" Cursor="Hand">
+                <Button.Style>
+                    <Style TargetType="{x:Type Button}">
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="{x:Type Button}">
+                                    <Border Background="{TemplateBinding Background}" CornerRadius="5">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#3FFF0000"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#5FFF0000"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
+        </Border>
+
+        <!-- Create VHDX from Folder Button -->
+        <Border Width="156" Height="32" Background="#BF000000" CornerRadius="5" 
+                HorizontalAlignment="Left" VerticalAlignment="Top" Margin="912,150,0,0">
+            <Button x:Name="CreateVhdxFromFolderButton" Content="Create VHDX from Folder" Background="Transparent" BorderThickness="0" 
+                    Foreground="#FFFAFAFA" Cursor="Hand">
+                <Button.Style>
+                    <Style TargetType="{x:Type Button}">
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="{x:Type Button}">
+                                    <Border Background="{TemplateBinding Background}" CornerRadius="5">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#3FFFFFFF"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#5FFFFFFF"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
+        </Border>
+
+        <!-- Create Bootable VHDX Button -->
+        <Border Width="156" Height="32" Background="#BF000000" CornerRadius="5" 
+                HorizontalAlignment="Left" VerticalAlignment="Top" Margin="912,188,0,0">
+            <Button x:Name="CreateBootableVhdxButton" Content="Create Bootable VHDX" Background="Transparent" BorderThickness="0" 
+                    Foreground="#FFFAFAFA" Cursor="Hand">
+                <Button.Style>
+                    <Style TargetType="{x:Type Button}">
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="{x:Type Button}">
+                                    <Border Background="{TemplateBinding Background}" CornerRadius="5">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#3FFFFFFF"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#5FFFFFFF"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
+        </Border>
+
+        <!-- Create VHDX Options Pane -->
+        <Border x:Name="CreatePane" Width="320" Height="260" Background="#BF000000" CornerRadius="5"
+                HorizontalAlignment="Left" VerticalAlignment="Top" Margin="912,252,0,0"
+                Visibility="Collapsed">
+            <Grid Margin="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="110"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="78"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock x:Name="SourcePathLabel" Text="Source Folder" Foreground="White" Margin="0,0,8,6" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center"/>
+                <TextBox x:Name="SourceFolderTextBox" Grid.Row="0" Grid.Column="1" Margin="0,0,6,6" IsReadOnly="True" Height="26"/>
+                <Border Width="72" Height="26" Background="#BF000000" CornerRadius="3" Grid.Row="0" Grid.Column="2" Margin="0,0,0,6">
+                    <Button x:Name="BrowseSourceFolderButton" Content="Browse" Background="Transparent" BorderThickness="0" Foreground="#FFFAFAFA" Cursor="Hand">
+                        <Button.Style>
+                            <Style TargetType="{x:Type Button}">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="{x:Type Button}">
+                                            <Border Background="{TemplateBinding Background}" CornerRadius="3">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#3FFFFFFF"/>
+                                    </Trigger>
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter Property="Background" Value="#5FFFFFFF"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </Border>
+
+                <TextBlock Text="Save As" Foreground="White" Margin="0,0,8,6" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center"/>
+                <TextBox x:Name="SavePathTextBox" Grid.Row="1" Grid.Column="1" Margin="0,0,6,6" IsReadOnly="True" Height="26"/>
+                <Border Width="72" Height="26" Background="#BF000000" CornerRadius="3" Grid.Row="1" Grid.Column="2" Margin="0,0,0,6">
+                    <Button x:Name="BrowseSavePathButton" Content="Browse" Background="Transparent" BorderThickness="0" Foreground="#FFFAFAFA" Cursor="Hand">
+                        <Button.Style>
+                            <Style TargetType="{x:Type Button}">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="{x:Type Button}">
+                                            <Border Background="{TemplateBinding Background}" CornerRadius="3">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#3FFFFFFF"/>
+                                    </Trigger>
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter Property="Background" Value="#5FFFFFFF"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </Border>
+
+                <TextBlock Text="Size (GB)" Foreground="White" Margin="0,0,8,6" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center"/>
+                <TextBox x:Name="VhdxSizeTextBox" Grid.Row="2" Grid.Column="1" Margin="0,0,6,6" Width="120" Height="26"/>
+
+                <TextBlock Text="File System" Foreground="White" Margin="0,0,8,6" Grid.Row="3" Grid.Column="0" VerticalAlignment="Center"/>
+                <ComboBox x:Name="FileSystemCombo" SelectedIndex="0" Grid.Row="3" Grid.Column="1" Margin="0,0,6,6" Width="140">
+                    <ComboBoxItem Content="FAT32"/>
+                    <ComboBoxItem Content="NTFS"/>
+                    <ComboBoxItem Content="exFAT"/>
+                </ComboBox>
+
+                <TextBlock Text="Partition Style" Foreground="White" Margin="0,0,8,6" Grid.Row="4" Grid.Column="0" VerticalAlignment="Center"/>
+                <ComboBox x:Name="PartitionStyleCombo" SelectedIndex="0" Grid.Row="4" Grid.Column="1" Margin="0,0,6,6" Width="140">
+                    <ComboBoxItem Content="GPT"/>
+                    <ComboBoxItem Content="MBR"/>
+                </ComboBox>
+
+                <StackPanel Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+                    <Border Width="80" Height="32" Background="#BF000000" CornerRadius="5">
+                        <Button x:Name="CancelCreateVhdxButton" Content="Cancel" Background="Transparent" BorderThickness="0" 
+                                Foreground="#FFFAFAFA" Cursor="Hand">
+                            <Button.Style>
+                                <Style TargetType="{x:Type Button}">
+                                    <Setter Property="Background" Value="Transparent"/>
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="{x:Type Button}">
+                                                <Border Background="{TemplateBinding Background}" CornerRadius="5">
+                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#3FFFFFFF"/>
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter Property="Background" Value="#5FFFFFFF"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </Border>
+                    <Border Width="80" Height="32" Background="#BF000000" CornerRadius="5" Margin="8,0,0,0">
+                        <Button x:Name="StartCreateVhdxButton" Content="Start" Background="Transparent" BorderThickness="0" 
+                                Foreground="#FFFAFAFA" Cursor="Hand">
+                            <Button.Style>
+                                <Style TargetType="{x:Type Button}">
+                                    <Setter Property="Background" Value="Transparent"/>
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="{x:Type Button}">
+                                                <Border Background="{TemplateBinding Background}" CornerRadius="5">
+                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#3FFFFFFF"/>
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter Property="Background" Value="#5FFFFFFF"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Command Log Panel (top-right, collapsed by default) -->
+        <Border x:Name="CommandLogPanel"
+                Width="340"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                Margin="0,32,32,0"
+                Visibility="Collapsed"
+                Background="Transparent">
+            <Expander x:Name="CommandLogExpander"
+                      ExpandDirection="Left"
+                      IsExpanded="False"
+                      Foreground="#FFFAFAFA">
+                <Expander.Header>
+                    <TextBlock Text="Command Log" FontWeight="Bold" Foreground="#FFFAFAFA"/>
+                </Expander.Header>
+                <Border Background="#BF000000" CornerRadius="5" Padding="12">
+                    <TextBox x:Name="CommandLogTextBox"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             Foreground="#FFFAFAFA"
+                             TextWrapping="Wrap"
+                             VerticalScrollBarVisibility="Auto"
+                             HorizontalScrollBarVisibility="Auto"
+                             IsReadOnly="True"
+                             FontFamily="Consolas"/>
+                </Border>
+            </Expander>
+        </Border>
+    </Grid>
+</Window>
